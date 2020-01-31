@@ -31,8 +31,6 @@ if __name__ == '__main__' :
     #vidpath = "../samples/runner.mp4"
 
     # obtain the bbox tuple from the argument which is a string
-    print(sys.argv[3])
-    print(len(sys.argv))
     bboxtext = str(sys.argv[3])
     bboxtext = bboxtext.replace('(','').replace(')','').replace(' ','').split(',')
     bbox = [int(i) for i in bboxtext]
