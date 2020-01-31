@@ -20,7 +20,6 @@ import sys
     This script works in accordance with test.sh
 """
 
-
 if __name__ == '__main__' :
 
     vidpath = sys.argv[1]
@@ -42,6 +41,7 @@ if __name__ == '__main__' :
      
     # Select the bounding bbox
     bbox = cv2.selectROI(frame, False)
+    bbox = str(bbox).replace(' ','')
     
-    print(str(bbox))
+    print(bbox)
 
