@@ -36,5 +36,10 @@ double IoU_eval(Rect2d bbox_a, Rect2d bbox_d);
 
 double unbiased_IoU_eval(Rect2d bbox_a, Rect2d bbox_d, double A_bg);
 
-vector<Rect2d> read_box(vector<String> saved_box);
+//vector<Rect2d> read_box(vector<String> saved_box);
+vector<Rect2d> read_box(String fname);
+
+void save_box(vector<Rect2d> bounds, String fname);
+
+
 

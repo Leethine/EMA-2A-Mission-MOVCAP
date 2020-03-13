@@ -312,10 +312,22 @@ double unbiased_IoU_eval(Rect2d bbox_a, Rect2d bbox_d, double A_bg) {
     
 }
 
-vector<Rect2d> read_box(vector<String> saved_box) {
+vector<Rect2d> read_box(String fname) {
 /*
  * Read the saved file (txt) into a list of Rect2d
- */    
+ */ 
+ 
+    ifstream fp;
+    fp.open(fname);
+    
+    vector<String> saved_box;
+    
+    String line;
+    while (getline(fp,line)) {
+        lines.push_back(saved_box);
+    }    
+    fp.close();
+
     vector<Rect2d> read;
     int w, h, x, y;
     for (vector<String>::iterator it = saved_box.begin();
@@ -326,6 +338,26 @@ vector<Rect2d> read_box(vector<String> saved_box) {
     }
     
     return read;
+}
+
+void save_box(vector<Rect2d> bounds, String fname) {
+/*
+ * Save selected boundaries to file (txt)
+ */ 
+    ofstream fp;
+    fp.open(fname);
+    
+    for ( vector<Rect2d>::iterator it = bounds.begin(); 
+          it != bounds.end(); it++) {
+         
+        fp << *it << "\n";
+    }
+    
+    fp.close();
+    
+    cout << "Manually captured boundaries." << endl 
+         << "Saved as: " << fname << endl;
+
 }
 
 /**
