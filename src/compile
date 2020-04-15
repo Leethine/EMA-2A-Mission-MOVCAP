@@ -1,0 +1,13 @@
+#!/bin/bash
+
+fname=$1
+sfname=$1".cpp"
+
+export CPATH=/home/lizian/.local/include/opencv4
+export LIBRARY_PATH=/home/lizian/.local/lib64
+
+gcc -lm -lopencv_core -lopencv_imgproc -lopencv_highgui \
+ -lopencv_imgcodecs -lopencv_video -lopencv_videoio \
+ -lopencv_tracking \
+ -lstdc++ -o $fname $sfname
+
