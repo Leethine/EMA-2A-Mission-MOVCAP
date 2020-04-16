@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Note: it is required to change the LD_LIBRARY_PATH
+# to your own opencv installation path
+
 export LD_LIBRARY_PATH=/home/lizian/.local/lib64
 
 if test "$#" -eq 4

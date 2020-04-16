@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Note: it is required to change the CPATH and 
+# LIBRARY_PATH to your own opencv installation path
+
 fname=$1
 sfname=$1".cpp"
 
