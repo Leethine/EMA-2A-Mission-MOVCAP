@@ -1,0 +1,39 @@
+#!/bin/bash
+
+export LD_LIBRARY_PATH=/home/lizian/.local/lib64
+
+if test "$#" -eq 4
+then
+
+  arg1=$1
+  arg2=$2
+  arg3=$3
+  arg4=$4
+
+./$arg1 $arg2 $arg3 $arg4
+
+fi
+
+if test "$#" -eq 3
+then
+
+  arg1=$1
+  arg2=$2
+  arg3=$3
+
+./$arg1 $arg2 $arg3
+
+fi
+
+
+if test "$#" -eq 2
+then
+
+  arg1=$1
+  arg2=$2
+  arg3=$3
+  arg4=$4
+
+./$arg1 $arg2
+
+fi
