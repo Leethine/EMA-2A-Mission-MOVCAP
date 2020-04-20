@@ -118,20 +118,12 @@ int main(int argc, char ** argv) {
     ofname.append(".txt");
     vector<Rect2d> boundaries = cutRect(argv[1]); 
     
-    ifstream fp;
-    fp.open(ofname);
-    String line;
-    vector<String> lines;
+    save_box(boundaries, ofname);
     
-    while (getline(fp,line)) {
-        lines.push_back(line);
+    for (vector<Rect2d>::iterator it = boundaries.begin();
+                             it != boundaries.end(); it++) {
+        cout << *it << "\n";
     }
-    
-    //vector<Rect2d> bbox = read_box(lines);
-    
-    //for (vector<Rect2d>::iterator it = bbox.begin(); it != bbox.end(); it++) {
-     //   cout << *it << "\n";
-    //}
     
     return 0;
 
