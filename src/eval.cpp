@@ -497,8 +497,8 @@ int main(int argc, char ** argv) {
     
     vector<Rect2d> bounds = read_box(textname);
     //drawrect( vidname, "output.avi", bounds, Scalar(0,255,255) );
-    //calculateIoU_genvid(vidname, "output.avi", trackername, bounds, true);
-    calculateIoU_genvid2(vidname, "output.avi", trackername, bounds, true);
+    calculateIoU_genvid(vidname, "output.avi", trackername, bounds, true);
+    //calculateIoU_genvid2(vidname, "output.avi", trackername, bounds, true);
     
     return 0;
 
