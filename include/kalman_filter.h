@@ -1,3 +1,10 @@
+/* The following code is modified from
+ * https://github.com/kseniaryabinova/KCF_and_kalman_filter/blob/master/include/kalman_filter.h
+ * Copyright (2020) kseniaryabinova 
+ * Licence uncertain.
+ */
+
+
 #ifndef TEST_KALMAN_FILTER_H
 #define TEST_KALMAN_FILTER_H
 
@@ -223,3 +230,4 @@ private:
 };
 
 #endif //TEST_KALMAN_FILTER_H
+
