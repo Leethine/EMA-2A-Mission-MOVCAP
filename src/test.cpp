@@ -61,6 +61,44 @@ static Ptr<Tracker> createTrackerType(const string trackername) {
     return tracker;
 }
 
+static vector<Rect2d> cutRect(const String videoname) {
+
+    vector<Rect2d> bounds;
+
+    VideoCapture video;
+    video.open(videoname);
+    
+    if ( !video.isOpened() ) {
+        cerr << "Could not open video." << endl;
+        exit(1);
+    }
+    
+    else {
+        
+        const unsigned int n_frames = video.get(VideoCaptureProperties::CAP_PROP_FRAME_COUNT);
+        Mat frame;
+        //resizeWindow("Boundary Selection",)
+        
+        for (int i = 0; i < n_frames; ++i) {
+            bool ok = video.read(frame);
+            
+            if (!ok) {
+                cerr << "(cutRect) Problem occured in reading video frame\n";
+                break;
+            }
+            else {
+                namedWindow("Boundary Selection", WINDOW_NORMAL);
+                Rect2d bbox = selectROI("Boundary Selection", frame);
+                bounds.push_back(bbox);
+                cout << i << " frames selected" << " out of " << n_frames << endl;
+            }
+        }
+    }
+    
+    return bounds;
+}
+
+
 vector<double> calculateIoU(const String videoname, Ptr<Tracker> tracker,
                                      vector<Rect2d> bounds, bool unbiased) {
                             
@@ -152,6 +190,8 @@ double unbiased_IoU_eval(Rect2d bbox_a, Rect2d bbox_d, double A_bg) {
     // bbox_a: annotation bbox, bbox_d: detection result bbox 
     Rect2d bbox_da = bbox_a & bbox_d;
     
+    cout << bbox_d.area() << endl;
+    
     // if they don't intersect at all => precision = 0 
     if ( bbox_da.area() == 0 ) {
         return 0.0;
@@ -208,6 +248,26 @@ vector<Rect2d> read_box(String fname) {
     return read;
 }
 
+void save_box(vector<Rect2d> bounds, String fname) {
+/*
+ * Save selected boundaries to file (txt)
+ */ 
+    ofstream fp;
+    fp.open(fname);
+    
+    for ( vector<Rect2d>::iterator it = bounds.begin(); 
+          it != bounds.end(); it++) {
+         
+        fp << *it << "\n";
+    }
+    
+    fp.close();
+    
+    cout << "Manually captured boundaries." << endl 
+         << "Saved as: " << fname << endl;
+
+}
+
 void drawrect(String vidname, String outfname, vector<Rect2d> bounds, const Scalar & colour) {
 
     VideoCapture video;
@@ -252,6 +312,42 @@ void drawrect(String vidname, String outfname, vector<Rect2d> bounds, const Scal
     
 }
 
+/**
+
+int main() {
+    //cout << "Wrong arguments, for usage, $ ./detectionEvaluator -h" << endl;
+    
+    vector<Rect2d> boundaries = cutRect("video-1584004494.mp4"); 
+    
+    Ptr<Tracker> tracker = createTrackerType("MIL");
+
+    vector<double> res = calculateIoU("video-1584004494.mp4", tracker, boundaries, true);
+    
+    for (vector<double>::iterator it = res.begin(); it != res.end(); it++) {
+        cout << *it << "\n";
+    }
+    
+    ifstream fp;
+    fp.open("save.txt");
+    String line;
+    vector<String> lines;
+    
+    while (getline(fp,line)) {
+        lines.push_back(line);
+    }
+    
+    vector<Rect2d> bbox = read_box(lines);
+    
+    for (vector<Rect2d>::iterator it = bbox.begin(); it != bbox.end(); it++) {
+        cout << *it << "\n";
+    }
+    
+    return 0;
+
+
+}
+
+**/
 
 void calculateIoU_genvid(const string videoname, const string outfname,  
                             string trackertype, vector<Rect2d> bounds, bool verbose) {
@@ -266,7 +362,6 @@ void calculateIoU_genvid(const string videoname, const string outfname,
     VideoWriter vout(outfname, VideoWriter::fourcc('M','J','P','G'), 20, 
                 Size( video.get(CAP_PROP_FRAME_WIDTH), video.get(CAP_PROP_FRAME_HEIGHT) ));
                 
-    Mat frame;
     //vector<double> results;
     
     if ( !video.isOpened() ) {
@@ -352,6 +447,8 @@ void calculateIoU_genvid(const string videoname, const string outfname,
                         putText(frame, msg, Point2f(10,25), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,230,255),2);
                         putText(frame, msg2, Point2f(10,60), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,0,255),2);
                         
+                        cout << "-1" << endl;
+                        
                         if (verbose) {
                             cout << msg << endl 
                                  << msg2 << endl
@@ -370,138 +467,96 @@ void calculateIoU_genvid(const string videoname, const string outfname,
     //return results;
 }
 
-void calculateIoU_genvid2(const string videoname, const string outfname,  
-                            string trackertype, vector<Rect2d> bounds, bool verbose) {
+static Mat bc_adjust(const Mat& orig_img, double alpha, double beta) {
+    
+    Mat new_img = Mat::zeros( orig_img.size(), orig_img.type() );
+    for( int y = 0; y < orig_img.rows; y++ ) {
+        for( int x = 0; x < orig_img.cols; x++ ) {
+            for( int c = 0; c < orig_img.channels(); c++ ) {
+                new_img.at<Vec3b>(y,x)[c] =
+                  saturate_cast<uchar>( alpha*orig_img.at<Vec3b>(y,x)[c] + beta );
+            }
+        }
+    }
+    return new_img;
+}
 
-    Ptr<Tracker> tracker = createTrackerType(trackertype);
-    double unbiased_IoU_eval(Rect2d bbox_a, Rect2d bbox_d, double A_bg);
+static Mat gamma_corr(const Mat& orig_img, double gamma) {
     
-    // run the calculation according to the number of evaluation selected
+    Mat new_img = Mat::zeros( orig_img.size(), orig_img.type() );
+    for( int y = 0; y < orig_img.rows; y++ ) {
+        for( int x = 0; x < orig_img.cols; x++ ) {
+            for( int c = 0; c < orig_img.channels(); c++ ) {
+                new_img.at<Vec3b>(y,x)[c] =
+                  saturate_cast<uchar>( pow( 
+                      (double) orig_img.at<Vec3b>(y,x)[c]/255, 
+                      gamma ) * 255 );
+            }
+        }
+    }
+    return new_img;
+}
+
+
+void vid_gamma_corr(const string vidname, double gamma) {
+
     VideoCapture video;
-    video.open(videoname);
+    video.open(vidname);
+    string outfname = vidname;
+    outfname.append(".avi");
     
-    VideoWriter vout(outfname, VideoWriter::fourcc('M','J','P','G'), 20, 
-                Size( video.get(CAP_PROP_FRAME_WIDTH), video.get(CAP_PROP_FRAME_HEIGHT) ));
-                
+    VideoWriter vout(outfname, VideoWriter::fourcc('M','J','P','G'), 20,
+                     Size( video.get(CAP_PROP_FRAME_WIDTH),
+
+                     video.get(CAP_PROP_FRAME_HEIGHT) ));    
     Mat frame;
-    //vector<double> results;
-    
+    Mat outframe;
     if ( !video.isOpened() ) {
         cerr << "Could not open video." << endl;
         exit(1);
     }
-    
     else {
-        const unsigned int n_frames = video.get(VideoCaptureProperties::CAP_PROP_FRAME_COUNT);
-        Mat frame;
-        // Instead of using the initial bbox for the object, use manually selected initial box
-        //Rect2d initbbox = bounds.at(0);
-        Rect2d initbbox;
-        Rect2d trackingbox = initbbox;
-        int area;
-        
-        if (verbose) {
-            cout << "VIDEO_FILE: " 
-                 << videoname << endl 
-                 << "TRACKER: " << trackertype << endl 
-                 << "----------------" << endl ;
-        }
-        
-        for (int i = 0; i < n_frames; ++i) {
+        const int n_frames = video.get(VideoCaptureProperties::CAP_PROP_FRAME_COUNT);
+        for (int i = 0; i < n_frames; i++) {
             bool readok = video.read(frame);
             if (!readok) {
-                cerr << "(calculateIoU) Problem occured in reading video frames\n";
-                break;
+                cerr << "Problem occured during frame reading." << endl;
             }
             else {
-                Rect2d annotbox = bounds.at(i);
-                if (i == 0) { 
-                    initbbox = selectROI("Select Initial", frame);
-                    tracker->init(frame, initbbox);
-                    area = frame.rows * frame.cols;
-                    rectangle(frame, initbbox, Scalar(255,0,0), 2, 8, 0);
-                    vout << frame;
-                }
-                else {
-                    bool trackok = tracker->update(frame, trackingbox);
-                    if (trackok) {
-                        double acc;
-                        acc = unbiased_IoU_eval(annotbox, trackingbox, (double) area);
-                        //rectangle(frame, initbbox, Scalar(0,255,255), 2, 8, 0);
-                        
-                        double acciou = IoU_eval(annotbox, trackingbox); 
-                        
-                        string msg = trackertype;
-                        msg.append(" No.");
-                        msg.append(to_string(i));
-                        msg.append(" frame");
-                        
-                        string msg2 = "IoU: ";
-                        msg2.append(to_string(acciou));
-                        
-                        string msg3 = "unbiased IoU: ";
-                        msg3.append(to_string(acc));
-                        
-                        //cout << msg << endl;
-                        
-                        rectangle(frame, annotbox, Scalar(255,0,0), 2, 8, 0);
-                        rectangle(frame, trackingbox, Scalar(0,255,255), 2, 8, 0);
-                        
-                        putText(frame, msg, Point2f(10,25), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,230,255),2);
-                        putText(frame, msg2, Point2f(10,60), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,230,255),2);
-                        putText(frame, msg3, Point2f(10,95), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,230,255),2);
-                        
-                        if (verbose) {
-                            cout << msg << endl 
-                                 << msg2 << endl 
-                                 << msg3 << endl
-                                 << "----------------" << endl;
-                        }
-                        //results.push_back(acc);
-                        vout << frame;
-                    }
-                    // of tracking failed, just append 0.0 to vector, we'll know it's a failure 
-                    else { 
-                        //results.push_back(0.0);
-                        string msg = trackertype;
-                        msg.append(" No.");
-                        msg.append(to_string(i));
-                        msg.append(" frame");
-                        string msg2 = "Tracking failed!";
-                        putText(frame, msg, Point2f(10,25), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,230,255),2);
-                        putText(frame, msg2, Point2f(10,60), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(0,0,255),2);
-                        
-                        if (verbose) {
-                            cout << msg << endl 
-                                 << msg2 << endl
-                                 << "----------------" 
-                                 << endl;
-                        }
-                        
-                        vout << frame;
-                    }
-                }
+                outframe = gamma_corr(frame, gamma);
+                vout << outframe;
             }
         }
     }
-
 }
 
-
 int main(int argc, char ** argv) {
+    
     String vidname = argv[1];
     String textname = argv[2];
     String trackername = argv[3];
+    
+    //string newvidname = vidname;
+    //newvidname.append("2.avi");
+    
     //vector<Rect2d> bounds =  cutRect(vidname);
     //save_box(bounds, "result.txt");
     
     vector<Rect2d> bounds = read_box(textname);
     //drawrect( vidname, "output.avi", bounds, Scalar(0,255,255) );
-    calculateIoU_genvid(vidname, "output.avi", trackername, bounds, true);
-    //calculateIoU_genvid2(vidname, "output.avi", trackername, bounds, true);
+    calculateIoU_genvid(vidname, "output.avi", trackername, bounds, false);
     
     return 0;
-
 }
+
+/*
+int main(int argc, char ** argv) {
+    String vidname = argv[1];
+    vid_gamma_corr(vidname, 0.7);
+    
+    return 0;
+}
+
+*/
 
 
