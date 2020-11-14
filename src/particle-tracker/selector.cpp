@@ -26,7 +26,7 @@ void Selector::mouse_callback(int event, int x, int y, int flags, void* data)
    
    switch( event )
    {
-      case EVENT_LBUTTONDOWN:
+     case EVENT_LBUTTONDOWN:
 	 self.m_selection_valid = false;
 	 self.m_selecting = true;
 	 self.m_selection = Rect(0,0,0,0);
@@ -34,11 +34,11 @@ void Selector::mouse_callback(int event, int x, int y, int flags, void* data)
 	 self.m_origin.y = y;
 	 break;
 
-      case EVENT_LBUTTONUP:
+     case EVENT_LBUTTONUP:
 	 self.m_selection_valid = true;
 	 self.m_selecting = false;
 
-      default:
+     default:
 	 if( self.m_selecting )
 	 {
 	    self.m_selection.x = MIN(x, self.m_origin.x);

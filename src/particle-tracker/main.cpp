@@ -74,7 +74,7 @@ inline void update_target_histogram(Mat& image, Mat& lbp_image, Rect& selection,
 
 struct StateData
 {
-   StateData(int num_particles, bool use_lbp_):
+   StateData(int num_particles, bool use_lbp_, string initframe_):
       image(),
       lbp(),
       target(),
@@ -84,7 +84,8 @@ struct StateData
       use_lbp(use_lbp_),
       paused(false),
       draw_particles(false),
-      filter(num_particles)
+      filter(num_particles),
+      initframe(initframe_)
    {};
 
    Mat image;
@@ -97,12 +98,17 @@ struct StateData
    bool paused;
    bool draw_particles;
    ParticleFilter filter;
+   string initframe;
 };
 
 State_ state_start(StateData& d)
 {
-
-   if( d.selector.selecting() )
+   if ( !d.initframe.empty() ) 
+   {
+      d.selector.setframebycmd();
+      return state_initframe(d);
+   }
+   else if( d.selector.selecting() )
    {  
       cout << "state_selecting" << endl;
       return state_selecting;
@@ -111,6 +117,18 @@ State_ state_start(StateData& d)
    {
       return state_start;
    }
+}
+
+State_ state_initframe(StateData& d)
+{
+   int w, h, x, y;
+   //scanf("[%d x %d from (%d, %d)]", &w, &h, &x, &y);
+   scanf("%dx%dfrom%dp%d", &w, &h, &x, &y);
+   d.selection.x = x;
+   d.selection.y = y;
+   d.selection.width = w;
+   d.selection.height = h;
+   return state_initializing;
 }
 
 State_ state_selecting(StateData& d)
@@ -132,7 +150,11 @@ State_ state_selecting(StateData& d)
 
 State_ state_initializing(StateData& d)
 {
-   if( d.selector.selecting() )
+   if ( d.selector.initiated() )
+   {
+      cout << "init frame by command" << endl;
+   }
+   else if( d.selector.selecting() )
    {  
       cout << "state_selecting" << endl;
       return state_selecting;
@@ -142,7 +164,7 @@ State_ state_initializing(StateData& d)
    update_target_histogram(d.image, d.lbp, d.selection, d.target_histogram, d.target, d.use_lbp);
 
    // Initialize condensation filter with center of selection
-  d.filter.init(d.selection);
+   d.filter.init(d.selection);
 
    // Start video running if paused
    d.paused = false;
@@ -194,22 +216,24 @@ struct Options
       :num_particles(NUM_PARTICLES),
        use_lbp(false),
        infile(),
-       outfile()
+       outfile(),
+       initframe()
    {}
 
    int num_particles;
    bool use_lbp;
    string infile;
    string outfile;
+   string initframe;
 };
 
 void parse_command_line(int argc, char** argv, Options& o)
 {
    int c = -1;
-   while( (c = getopt(argc, argv, "lo:p:")) != -1 )
+   while( (c = getopt(argc, argv, "lopb:")) != -1 )
    {
-      switch(c)
-      {
+     switch(c)
+     {
 	 case 'l':
 	    o.use_lbp = true;
 	    break;
@@ -219,10 +243,14 @@ void parse_command_line(int argc, char** argv, Options& o)
 	 case 'p':
 	    o.num_particles = atoi(optarg);
 	    break;
+	 case 'b':
+	    o.initframe = optarg;
 	 default:
-	    cerr << "Usage: " << argv[0] << " [-o output_file] [-p num_particles] [-l] [input_file]" << endl << endl;
+	    cerr << "Usage: " << argv[0] << " [-o output_file] [-p num_particles] [-b frame]" 
+	    << " [-l] [input_file]" << endl << endl;
 	    cerr << "\t-o output_file : Optional mjpeg output file" << endl;
 	    cerr << "\t-p num_particles: Number of particles (samples) to use, default is 200" << endl;
+	    cerr << "\t-b initial_frame: Initial frame of the object to track" << endl;
 	    cerr << "\t-l: Use local binary patterns in histogram" << endl;
 	    cerr << "\tinput_file : Optional file to read, otherwise use camera" << endl;
 	    exit(1);
@@ -237,6 +265,7 @@ void parse_command_line(int argc, char** argv, Options& o)
    cout << "Num particles: " << o.num_particles << endl;
    cout << "Input file: " << o.infile << endl;
    cout << "Output file: " << o.outfile << endl;
+   cout << "Init frame: " << o.initframe << endl;
    cout << "Use LBP: " << o.use_lbp << endl;
 
 }
@@ -276,8 +305,8 @@ int main(int argc, char** argv)
       writer.open(o.outfile, CV_FOURCC('j', 'p', 'e', 'g'), fps, Size(width, height));
       if( !writer.isOpened() )
       {
-	 cerr << "Could not open '" << o.outfile << "'" << endl;
-	 exit(1);
+	  cerr << "Could not open '" << o.outfile << "'" << endl;
+	  exit(1);
       }
       use_camera = false;
    }
@@ -286,7 +315,8 @@ int main(int argc, char** argv)
    namedWindow(WINDOW, WINDOW_FREERATIO | CV_NORMAL);
 
 
-   StateData d(o.num_particles, o.use_lbp);
+   StateData d(o.num_particles, o.use_lbp, o.initframe);
+   
    State state = state_start;
    Mat frame, gray;
 
@@ -367,7 +397,7 @@ int main(int argc, char** argv)
 */
       Mat target_display_area(d.image, Rect(d.image.cols - d.selection.width, 0, d.selection.width, d.selection.height));
 	  d.target.copyTo(target_display_area);
-  
+	  
 
       imshow(WINDOW, d.image);
       if( writer.isOpened() and !d.paused )

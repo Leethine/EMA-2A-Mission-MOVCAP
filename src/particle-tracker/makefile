@@ -12,7 +12,7 @@ SRCS = main.cpp condens.cpp lbp.cpp selector.cpp filter.cpp hist.cpp
 HEADERS =  condens.h lbp.h selector.h filter.h state.h hist.h
 
 particle_tracker: $(SRCS) $(HEADERS)
-	g++ $(CFLAGS) -o particle_tracker $(LIBS) $(SRCS)
+	g++ $(CFLAGS) -g -o particle_tracker $(LIBS) $(SRCS)
 
 .PHONY clean:
 	rm -f particle_tracker particle_tracker.exe

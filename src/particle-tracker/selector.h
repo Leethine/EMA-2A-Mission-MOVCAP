@@ -29,6 +29,7 @@ public:
       :m_selection_valid(false),
        m_selecting(false),
        m_selection(),
+       m_initiated(false),
        m_origin()
    {
       cv::setMouseCallback(window, mouse_callback, this);
@@ -36,6 +37,12 @@ public:
 
    bool valid() const
    { return m_selection_valid; }
+   
+   void setframebycmd()
+   { m_initiated = true; }
+   
+   bool initiated() const
+   { return m_initiated; }
    
    bool selecting() const
    { return m_selecting; }
@@ -49,6 +56,7 @@ private:
 private:
    bool m_selection_valid;
    bool m_selecting;
+   bool m_initiated;
    cv::Rect m_selection;
    cv::Point m_origin;
 };

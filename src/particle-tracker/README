@@ -23,10 +23,11 @@ Just a basic makefile. Should work on any Unix-like system.
 Usage
 -----
 
-./particle_tracker [-o output_file] [-p num_particles] [-l] [input_file]
+./particle_tracker [-o output_file] [-p num_particles] [-b init_box] [-l] [input_file]
 
-	-o output_file : Optional mjpeg output file
+	-o output_file: Optional mjpeg output file
 	-p num_particles: Number of particles (samples) to use, default is 200
+	-b init_box: Initialisation frame from command line, in condensed opencv format, i.e. "606x394from386p326"
 	-l: Use local binary patterns in histogram
 	input_file : Optional file to read, otherwise use camera
 

@@ -31,6 +31,7 @@ struct State_
 
 State_ state_start(StateData& d);
 State_ state_selecting(StateData& d);
+State_ state_initframe(StateData& d);
 State_ state_initializing(StateData& d);
 State_ state_tracking(StateData& d);
 
